@@ -10,76 +10,30 @@
 #define SALIDA_EXITOSA 0
 FILE* validacionDeArchivoEntrada(int argc, char *argv[], bool ingresoGuion){
 	FILE *auxi = NULL;
-	/* int i = 0; */
-	/* for (i = optind; i < argc; i++){ */
-	/* 	if(ingresoGuion){ */
-	/* 		if(argv[i] != NULL){ */
-	/* 			printf ("Fichero Entrada: %s\n", argv[i]); */
-	/* 			auxi = fopen(argv[i], "r"); */
-	/* 			if (auxi == NULL) { */
-	/* 				fprintf(stderr, "Error archivo Entrada: %s\n", strerror(errno)); */
-	/* 				return NULL; */
-	/* 			} */
-	/* 			return auxi; */
-	/* 		} */
-	/* 	}else{ */
-	/* 		if(strcmp(argv[i],"-") == 0){ */
-	/* 			if(argv[i+1] != NULL){ */
-	/* 				printf ("Ficheros que se enviaran %s\n", argv[i+1]); */
-	/* 				auxi = fopen(argv[i+1], "r"); */
-	/* 				if (auxi == NULL) { */
-	/* 					fprintf(stderr, "Error archivo Entrada: %s\n", strerror(errno)); */
-	/* 					return NULL; */
-	/* 				} */
-	/* 				return auxi; */
-	/* 			}else{ */
-	/* 				fprintf(stderr, "Ingrese un archivo de entrada\n"); */
-	/* 				return NULL; */
-	/* 			} */
-	/* 		} */
-
-	/* 	} */
-	/* } */
-
-
 	auxi = fopen( argv[argc - 1], "r" );
-
+	if(auxi == NULL){
+		fprintf(stderr, "Error archivo Entrada: %s\n", strerror(errno));
+		return NULL;
+	}
 	return auxi;
 }
-
-void imprimirVector(long long *vector, int cantidad){
-	int i = 0;
-	for (i = 0; i < cantidad; i++){
-		printf(" %lli", vector[i]);
-	}
-	printf("\n");
-}
-
-void imprimirMatriz(long long *matrix, int cantColumnas, int cantFilas, FILE *fp){
+void guardarMatriz(long long *matrix, int cantColumnas, int cantFilas, FILE *fp){
 	int i=0;
 	int contadorColumna = 0;
 	for (i = 0; i < (cantColumnas*cantFilas); i++){
 		if(contadorColumna == cantColumnas){
-			printf("\n");
-			if ( NULL != fp ) fputc('\n', fp );
-			else puts( "\n" );
+			fprintf( fp, "\n");
 			contadorColumna = 0;
 		}
-
-		if ( NULL != fp ){
-			fprintf( fp, "%lli", matrix[i] );
+		fprintf( fp, "%lli", matrix[i] );
+		contadorColumna++;
+		if(contadorColumna != cantColumnas){
 			fputc( ' ', fp );
 		}
-		printf( "%lli", matrix[i] );
-
-		contadorColumna++;
 	}
 	if ( NULL != fp ) fputc( '\n', fp);
 	else puts( "\n" );
 }
-
-//De MIPS
-//extern int trasponerMips(unsigned int filas, unsigned int columnas,long long *entrada, long long *salida);
 int trasponer(unsigned int filas, unsigned int columnas, long long *entrada, long long *salida){
 	int i = 0;
 	int contadorMatrixSalida = 0;
@@ -96,13 +50,18 @@ int trasponer(unsigned int filas, unsigned int columnas, long long *entrada, lon
 int llenarFila(char *fila,long long *vectorFila,int *cantColumnas,int contadorFilas){
 	int contadorColumna = 0;
 	char *auxi = malloc((*cantColumnas)*sizeof(char));
+	char *eptr;
 	int contadorAuxi = 0;
 	int contadorFila = 0;
 	int tamanioFile = strlen(fila);
 	while(contadorFila <= tamanioFile){
 		if(fila[contadorFila] == ' ' || contadorFila == tamanioFile){
 			auxi[contadorAuxi] = '\0';
-			long long numero = atoll(auxi);
+			long long numero = strtoll(auxi, &eptr, 10);
+			if (*eptr){
+			    printf("Error de conversion en fila: %i ,columna: %i\n",contadorFilas,*cantColumnas);
+			    return ERROR;
+			}
 			if(contadorAuxi > 0){
 				vectorFila[contadorColumna] = numero;
 				contadorColumna++;
@@ -167,7 +126,6 @@ long long *parsearMatriz(FILE *inputFile, int *cantFilas, int *cantColumnas){
 				matrix[contadorMatrix] = vectorFila[i];
 				contadorMatrix++;
 			}
-			//imprimirVector(vectorFila,*cantColumnas);
 			free(vectorFila);
 			free(fila);
 		}
@@ -181,15 +139,12 @@ long long *parsearMatriz(FILE *inputFile, int *cantFilas, int *cantColumnas){
 		fprintf(stderr, "Error: faltan filas\n");
 		return NULL;
 	}
-	//imprimirMatriz(matrix,*cantColumnas,*cantFilas);
 	return matrix;
 }
 
 int main(int argc, char *argv[])
 {
-	printf("%s\n", argv[argc-1]);
     int option = 0;
-	int o = 0;
 	char *file;
     const char *short_opt = ":o:hV";
     struct option long_opt[] = {
@@ -223,14 +178,12 @@ int main(int argc, char *argv[])
 			return SALIDA_EXITOSA;
 		case 'o':
 			if(strcmp(optarg, "-") != 0){
-				o = 1;
 				file = optarg;
-				/* printf ("archivo valido: %s \n", optarg); */
-				/* outputFile = fopen(optarg, "w+"); */
-				/* if (outputFile == NULL) { */
-				/* 	fprintf(stderr, "Error archivo Entrada: %s\n", strerror(errno)); */
-				/* 	return ERROR; */
-				/* } */
+				outputFile = fopen( file, "w" );
+				if (outputFile == NULL) {
+				 	fprintf(stderr, "Error archivo Salida: %s\n", strerror(errno));
+					return ERROR;
+				}
 			}
 			else{
 				ingresoGuion = true;
@@ -238,40 +191,34 @@ int main(int argc, char *argv[])
 			}
 			break;
 		default:
+			fprintf(stderr, "Parametro invalido, use el comando -h\n");
+			return ERROR;
 			break;
         }
 
     }
-	
-    /* if(outputFile == NULL) */
-    /* 	outputFile = stdout; */
-
     inputFile = validacionDeArchivoEntrada(argc,argv,ingresoGuion);
     if(inputFile==NULL){
-		puts( "Error con el archivo, terminando" );
     	return ERROR;
     }
     int cantFilas = 0;
     int cantColumnas = 0;
     long long *matrix = parsearMatriz(inputFile,&cantFilas, &cantColumnas);
-	fclose(inputFile);
     if(matrix==NULL){
     	return ERROR;
     }
-	puts("Matrix");
-    imprimirMatriz(matrix,cantColumnas,cantFilas, NULL);
     long long *matrixSalida = malloc((cantFilas*cantColumnas)*sizeof(long long));
-    printf("------------------------------\n");
 
     trasponer(cantFilas, cantColumnas, matrix, matrixSalida);
 	
-	outputFile = fopen( file, "w" );
 	if ( NULL == outputFile ) outputFile = stdout;
-	imprimirMatriz(matrixSalida, cantFilas, cantColumnas, outputFile);
+	guardarMatriz(matrixSalida, cantFilas, cantColumnas, outputFile);
 
-	fclose(outputFile);
-	
-    //printf("%i %i \n",cantFilas,cantColumnas);
+	if(outputFile != stdout){
+		fclose(outputFile);
+	}
+
+	fclose(inputFile);
     free(matrix);
     free(matrixSalida);
     return SALIDA_EXITOSA;
