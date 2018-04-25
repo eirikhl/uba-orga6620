@@ -29,7 +29,6 @@ trasponerMips:
 	sw 			zero,16($fp)		#t0 int i=0
 	sw 			zero,20($fp)		#int contadorMatrixSalida = 0;
 	sw			zero,24($fp)
-
 	#for(i = 0;i < columnas;i++){
 forPrincipal:
 	lw 			t0,16($fp)
@@ -37,10 +36,10 @@ forPrincipal:
 
 	sw			zero,24($fp)		#int j = 0;
 
-	#for(i = 0;i < columnas;i++)
+	#for(j = 0; j< filas; j++)
 forSecundario:
 	lw			t0,24($fp)
-	bge			t0,a1,salirDeForPrincipal
+	bge			t0,a0,salirDeForPrincipal
 
 	#salida[contadorMatrixSalida] = entrada[j*columnas+i];
 	move 		t0,a1
