@@ -6,14 +6,14 @@
 	.ent	trasponerMips
 trasponerMips:
 
-	.frame  	$fp ,44 , ra
+	.frame  	$fp ,48 , ra
 	.set 		noreorder
 	.cpload t9
 	.set		reorder
 	subu		sp , sp ,40
 	.cprestore 	16
-	sw			$fp ,36(sp)
-	sw			ra ,32(sp)
+	sw			$fp ,32(sp)
+	sw			ra ,36(sp)
 	sw			gp ,40(sp)
 
 	sw			a0 ,0(sp)
@@ -73,9 +73,9 @@ salirDeForPrincipal:
 
 trasponerMipsFin:
 	li			v0,1
-	lw			ra ,32($fp)
-	lw			$fp ,36($fp)
+	lw			ra ,36($fp)
+	lw			$fp ,32($fp)
 	lw			gp ,40($fp)
-	addu		sp,sp,40
+	addu		sp,sp,48
 	j 			ra
 	.end	trasponerMips
