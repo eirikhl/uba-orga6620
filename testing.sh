@@ -4,7 +4,7 @@
 printf "\n"
 printf "Archivo de testeo\n\n"
 
-printf "test solo C"
+printf "test solo C\n"
 printf "\ntest 1: le  faltan filas a la matriz, informar error\n"
 
 salidaDelPrograma="archivoAuxi1"
@@ -188,7 +188,7 @@ fi
 rm $salidaDelPrograma
 rm $auxiSalidaArchivo
 
-printf "============================================================\n\n"
+printf "\n============================================================\n\n"
 printf "test de C + MIPS\n\n"
 
 printf "\ntest 1: le  faltan filas a la matriz, informar error\n"
@@ -373,3 +373,5 @@ elif [ -f $ENTRADA ]; then
 fi
 rm $salidaDelPrograma
 rm $auxiSalidaArchivo
+
+printf "\nFin de Tests \n"

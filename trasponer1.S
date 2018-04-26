@@ -2,26 +2,29 @@
 
 	.text
 	.align	2
-	.globl	trasponerMips
-	.ent	trasponerMips
-trasponerMips:
+	.globl	trasponer
+	.ent	trasponer
+trasponer:
 
-	.frame  	$fp ,48 , ra
+	/*int i=0;
+	int contadorMatrixSalida = 0;
+	for(i = 0;i < columnas;i++){
+		int j = 0;
+		for(j = 0; j< filas; j++){
+			salida[contadorMatrixSalida] = entrada[j*columnas+i];
+			contadorMatrixSalida++;
+		}
+	}
+	return 1;*/
+	.frame  	$fp ,40 , ra
 	.set 		noreorder
 	.cpload t9
 	.set		reorder
 	subu		sp , sp ,40
 	.cprestore 	16
 	sw			$fp ,32(sp)
-	sw			ra ,36(sp)
-	sw			gp ,40(sp)
-
-	sw			a0 ,0(sp)
-	sw			a1 ,4(sp)
-	sw			a2 ,8(sp)
-	sw			a3 ,12(sp)
-
 	move		$fp , sp
+	sw			ra ,36($fp)
 
 	sw 			zero,16($fp)		#t0 int i=0
 	sw 			zero,20($fp)		#int contadorMatrixSalida = 0;
@@ -75,7 +78,6 @@ trasponerMipsFin:
 	li			v0,1
 	lw			ra ,36($fp)
 	lw			$fp ,32($fp)
-	lw			gp ,40($fp)
-	addu		sp,sp,48
+	addu		sp,sp,40
 	j 			ra
-	.end	trasponerMips
+	.end	trasponer

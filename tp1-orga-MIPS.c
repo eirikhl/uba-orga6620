@@ -49,7 +49,7 @@ int llenarFila(char *fila,long long *vectorFila,int *cantColumnas,int contadorFi
 			auxi[contadorAuxi] = '\0';
 			long long numero = strtoll(auxi, &eptr, 10);
 			if (*eptr){
-			    fprintf(stderr,"Error de conversion en fila: %i, columna: %i\n",contadorFilas,*cantColumnas);
+			    fprintf(stderr,"Error de conversion en fila: %i ,columna: %i\n",contadorFilas,*cantColumnas);
 			    return ERROR;
 			}
 			if(contadorAuxi > 0){
@@ -152,7 +152,6 @@ int main(int argc, char *argv[])
 			printf("TP #0 de la materia Organizacion de Computadoras \n");
 			printf("Alumno: \n");
 			printf("	Quino Lopez Julian \n");
-			printf("	Lund Eirik Harald \n");
 			return SALIDA_EXITOSA;
 		case 'h':
 			printf("Usage: \n");
