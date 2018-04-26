@@ -12,12 +12,13 @@ FILE* validacionDeArchivoEntrada(int argc, char *argv[], bool ingresoGuion){
 	FILE *auxi = NULL;
 	auxi = fopen( argv[argc - 1], "r" );
 	if(auxi == NULL){
-		fprintf(stderr, "Error archivo Entrada: %s\n", strerror(errno));
+		fprintf(stderr, "Error en el archivo Entrada: %s\n", strerror(errno));
 		return NULL;
 	}
 	return auxi;
 }
 void guardarMatriz(long long *matrix, int cantColumnas, int cantFilas, FILE *fp){
+	fprintf( fp, "%i %i\n", cantFilas ,cantColumnas);
 	int i=0;
 	int contadorColumna = 0;
 	for (i = 0; i < (cantColumnas*cantFilas); i++){
@@ -59,7 +60,7 @@ int llenarFila(char *fila,long long *vectorFila,int *cantColumnas,int contadorFi
 			auxi[contadorAuxi] = '\0';
 			long long numero = strtoll(auxi, &eptr, 10);
 			if (*eptr){
-			    printf("Error de conversion en fila: %i ,columna: %i\n",contadorFilas,*cantColumnas);
+			    fprintf(stderr,"Error de conversion en fila: %i ,columna: %i\n",contadorFilas,*cantColumnas);
 			    return ERROR;
 			}
 			if(contadorAuxi > 0){
