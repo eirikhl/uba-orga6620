@@ -163,6 +163,7 @@ int main(int argc, char *argv[])
 			printf("TP #0 de la materia Organizacion de Computadoras \n");
 			printf("Alumno: \n");
 			printf("	Quino Lopez Julian \n");
+			printf("	Lund Eirik Harald \n");
 			return SALIDA_EXITOSA;
 		case 'h':
 			printf("Usage: \n");
