@@ -1,0 +1,170 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <getopt.h>
+#include <limits.h>
+
+void
+print_help()
+{
+	printf( "Usage:\n" );
+    printf( "\ttp0 -h\n" );
+    printf( "\ttp0 -V\n" );
+    printf( "\ttp0 [options] file\n" );
+    printf( "Options:\n" );
+    printf( "\t-V, --version\tPrint version and quit.\n" );
+    printf( "\t-h, --help\tPrint this information.\n" );
+	printf( "\t-l, --words\tPrint number of lines in file.\n" );
+	printf( "\t-w, --words\tPrint number of words in file.\n" );
+	printf( "\t-c, --words\tPrint number of characters in file.\n" );
+	printf( "\t-i, --input\tPath to input file.\n" );
+    printf( "Examples:\n" );
+    printf( "\ttp0 -w -i input.txt\n\n" );
+}
+
+void print_version()
+{
+	printf( "tp0 1.0\n" );
+    printf( "Copyright © 2017 FIUBA.\n" );
+	printf( "This is free software: you are free to change and redistribute it. There is NO WARRANTY, to the extent permitted by law.\n" );
+	printf( "Written by Eirik Harald Lund\n\n" );
+}
+
+int
+is_a_char( int c )
+{
+	int r;
+
+	if ( isalnum( c ) )
+		r = 1;
+	else if ( ispunct( c ) )
+		r = 1;
+	else if ( c >= 0xC0 )
+		r = 1;
+	else
+		r = 0;
+	return r;
+}
+
+void
+count ( FILE* fp, int line, int word, int character )
+{
+	int nl; // counter for lines
+	nl = 0;
+	int nw; // counter for words
+	nw = 0;
+	int nc; // counter for characters
+	nc = 0;
+    
+	int c; // Working byte/character
+	int co; // Previous character
+	co = 0; // To avoid using unassigned variable
+	int temp;
+	while ( EOF != ( c = fgetc( fp ) ) )
+	{
+		if ( c >= 0xC0 )
+		{
+			temp = c;
+			c = fgetc( fp );
+			++nc;
+			
+			while ( c >= 0x80 && c < 0xC0 )
+			{
+				temp += c;
+				c = fgetc( fp );
+				++nc;
+
+				if ( c > 0xC0 )
+				{
+					if ( isspace( temp ) && is_a_char( co )  )
+						++nw;
+					temp = c;
+					c = fgetc( fp );
+					++nc;
+				}
+			}
+
+			if ( isspace( temp ) && is_a_char( co )  )
+				++nw;
+			co = temp;
+		}
+		
+		if ( '\n' == c )
+			++nl;
+		else if ( isspace( c ) && is_a_char( co ) )
+			++nw;
+
+		++nc;
+		if ( INT_MAX == nc ) // Avoid infinite files crashing the program
+		{
+			puts( "Maximum number of characters read, quitting" );
+			break;
+		}
+		
+		co = c;
+	}
+
+	if ( line ) printf( " %i", nl );
+	if ( word ) printf( " %i", nw );
+	if ( character ) printf( " %i", nc );
+
+}
+
+int
+main ( int argc, char *argv[] )
+{
+	FILE *fp;
+
+	int l = 0, w = 0, c = 0;
+	int will_count;
+	will_count = 0;
+	char *file;
+	
+	static struct option long_options[] = {
+        {"version", no_argument, 0, 'V'},
+        {"help", no_argument, 0, 'h'}
+	};
+	int opt;
+	int option_index;
+	option_index = 0;
+	while ((opt = getopt_long (argc, argv, "Vhlwci:", long_options, &option_index )) != -1)
+	{
+		switch (opt)
+		{
+		case 'V':
+			print_version();
+			break;
+		case 'h':
+			print_help();
+			break;
+		case 'l':
+			l = 1;
+			break;
+		case 'w':
+			w = 1;
+			break;
+		case 'c':
+			c = 1;
+			break;
+		case 'i':
+			will_count = 1;
+			file = optarg;
+			break;
+		}
+	}
+
+	if ( will_count )
+	{
+		fp = fopen( file, "r" );
+		if ( NULL == fp )
+		{
+			puts( "Invalid file name\nAborting" );
+			return EXIT_FAILURE;
+		}
+		count( fp, l, w, c );
+		fclose( fp );
+		printf( " %s\n", file );
+	}
+
+	return EXIT_SUCCESS;
+}
