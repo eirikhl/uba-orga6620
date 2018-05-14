@@ -11,9 +11,24 @@ typedef struct {
 } Block;
 
 
+Block cache[16][2]; // 2 ways => 512B*2 => 16 Blocks of 32B
+// Necesita un malloc o calloc???
+
 void init()
 {
 	miss_rate = 0;
+	for( int i = 0; i < 16; ++i )
+	{
+		for( int j = 0; j < 2; ++j )
+		{
+			// Seguro que hay errores
+			Block temp;
+			temp.value = 0;
+			temp.tag = j; // ???
+			temp.dirty = 0;
+			cache[i][j] = temp;
+		}
+	}
 }
 
 
