@@ -2,6 +2,8 @@
 #include <stdlib.h>
 
 
+unsigned int instructions;
+unsigned int misses;
 unsigned int miss_rate;
 
 typedef struct {
@@ -27,7 +29,10 @@ Block cache[16][2]; // 2 ways => 512B*2 => 16 Blocks of 32B
 
 void init()
 {
+	instructions = 0;
+	misses = 0;
 	miss_rate = 0;
+	
 	for( int i = 0; i < 16; ++i )
 	{
 		for( int j = 0; j < 2; ++j )
@@ -66,30 +71,40 @@ unsigned char read_byte( int address )
 	int pos;
 	pos = mem[loc].tag;
 	int way;
-	/* way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0 */
+
+	int present = 1;
+	
 	if ( cache[pos][0].offset == mem[loc].offset ) way = 0; 
 	else if ( cache[pos][1].offset == mem[loc].offset ) way = 1;
-
+	else
+	{
+		present = 0;
+		way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0
+	}
+	
 	// Used now => is the LRU
 	cache[pos][way].lru = 0;
 	cache[pos][1-way].lru = 1;
+
+	if ( ( cache[pos][way].valid ) && ( ! cache[pos][way].dirty ) )
+	{
+		puts("valid and clean");
+		return cache[pos][way].value;
+	}
 
 	if ( ! cache[pos][way].valid )
 	{
 		puts("invalid");
 		cache[pos][way].value = mem[loc].value;
+		cache[pos][way].offset = mem[loc].offset;
+		
 		cache[pos][way].valid = 1;
 		cache[pos][way].dirty = 0;
 				
 		return -1;
 	}
 
-	if ( ! cache[pos][way].dirty )
-	{
-		puts("valid and clean");
-		return cache[pos][way].value;
-	}
-
+	// Writeback
 	puts("dirty");
 	
 	mem[ cache[pos][way].offset * 32 ].value = cache[pos][way].value;
@@ -102,15 +117,35 @@ unsigned char read_byte( int address )
 }
 
 
-int write_byte( int address, unsigned char value )
+unsigned int write_byte( int address, unsigned char value )
 {
-	return -1;
+	int loc;
+	loc = address/32;
+	mem[loc].value = value; // The value should be written to mem no matter what
+	
+	int pos;
+	pos = mem[loc].tag;
+	int way;
+	/* way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0 */
+	if ( cache[pos][0].offset == mem[loc].offset ) way = 0; 
+	else if ( cache[pos][1].offset == mem[loc].offset ) way = 1;
+	else return -1;
+
+	// Used now => is the LRU
+	cache[pos][way].lru = 0;
+	cache[pos][1-way].lru = 1;
+	
+	cache[pos][way].value = value;
+	cache[pos][way].valid = 1;
+
+	puts("written");
+    return 0;
 }
 
 
 unsigned int get_miss_rate()
 {
-	return miss_rate;
+	return misses/instructions;
 }
 
 
@@ -131,12 +166,16 @@ int main( int argc, char *argv[] )
 	}
 	
 	init();
+	printf("%d\n", write_byte(96, 11));
 	printf("%u\n", read_byte(96));
+	
+	printf("%d\n", write_byte(96, 69));
 	printf("%u\n", read_byte(96));
 	
 	printf("%u\n", read_byte(3072));
 
 	
 	fclose( fp );
+	
 	return EXIT_SUCCESS;
 }
