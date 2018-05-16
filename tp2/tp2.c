@@ -5,14 +5,22 @@
 unsigned int miss_rate;
 
 typedef struct {
-	unsigned char value;
+	unsigned char V;
+	int index; // Address
+	int tag;
+	int offset;
+} Line; // For memory
+
+typedef struct {
+	unsigned char V;
 	int tag;
 	int dirty;
-} Block;
+} Block; // For cache
 
-
+Line mem[128]; // 4096B/32B
 Block cache[16][2]; // 2 ways => 512B*2 => 16 Blocks of 32B
 // Necesita un malloc o calloc???
+
 
 void init()
 {
@@ -23,11 +31,21 @@ void init()
 		{
 			// Seguro que hay errores
 			Block temp;
-			temp.value = 0;
+			temp.V = 0;
 			temp.tag = j; // ???
-			temp.dirty = 0;
+			temp.dirty = 1;
 			cache[i][j] = temp;
 		}
+	}
+
+	for( int i = 0; i < 128; ++i )
+	{
+		Line temp;
+		temp.V = i;
+		temp.index = 32*i;
+		temp.tag = i%16; // Distribute between the 16 blocks of each way
+		temp.offset = 0; // ???
+		mem[i] = temp;
 	}
 }
 
@@ -35,6 +53,7 @@ void init()
 unsigned char read_byte( int address )
 {
 	
+	return mem[address/32].V;
 }
 
 
@@ -46,7 +65,7 @@ int write_byte( int address, unsigned char value )
 
 unsigned int get_miss_rate()
 {
-
+	return miss_rate;
 }
 
 
@@ -59,7 +78,7 @@ int main( int argc, char *argv[] )
 		printf( "Invalid amount of arguments\n" );
 		return EXIT_FAILURE;
 	}
-	fp = fopen( argv[1] );
+	fp = fopen( argv[1], "r" );
 	if ( NULL == fp )
 	{
 		printf( "The file does not exist\n" );
@@ -67,7 +86,10 @@ int main( int argc, char *argv[] )
 	}
 	
 	init();
+	printf("%u\n", read_byte(32));
+	printf("%u\n", read_byte(3072));
 
+	
 	fclose( fp );
 	return EXIT_SUCCESS;
 }
