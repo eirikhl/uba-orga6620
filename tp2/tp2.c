@@ -33,7 +33,7 @@ void init()
 	misses = 0;
 	miss_rate = 0;
 	
-	for( int i = 0; i < 16; ++i )
+	for ( int i = 0; i < 16; ++i )
 	{
 		for( int j = 0; j < 2; ++j )
 		{
@@ -50,7 +50,7 @@ void init()
 		}
 	}
 
-	for( int i = 0; i < 128; ++i )
+	for ( int i = 0; i < 128; ++i )
 	{
 		Line temp;
 		temp.value= i;
@@ -156,14 +156,10 @@ int main( int argc, char *argv[] )
 	if ( 2 != argc )
 	{
 		printf( "Invalid amount of arguments\n" );
-		return EXIT_FAILURE;
+		exit( EXIT_FAILURE );
 	}
+	
 	fp = fopen( argv[1], "r" );
-	if ( NULL == fp )
-	{
-		printf( "The file does not exist\n" );
-		return EXIT_FAILURE;
-	}
 	
 	init();
 	printf("%d\n", write_byte(96, 11));
@@ -174,8 +170,30 @@ int main( int argc, char *argv[] )
 	
 	printf("%u\n", read_byte(3072));
 
-	
-	fclose( fp );
-	
-	return EXIT_SUCCESS;
+	char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    /* fp = fopen("/etc/motd", "r"); */
+    if ( fp == NULL )
+	{
+		printf( "The file does not exist\n" );
+		exit( EXIT_FAILURE );
+	}
+
+	char cmd;
+	int addr;
+	int val;
+	char temp[12];
+	char *ptr;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        printf( "%s", line );
+    }
+
+    fclose( fp );
+
+	if (line)
+        free(line);
+    	
+	exit( EXIT_SUCCESS );
 }
