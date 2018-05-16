@@ -5,16 +5,19 @@
 unsigned int miss_rate;
 
 typedef struct {
-	unsigned char V;
+	unsigned char value;
 	int index; // Address
 	int tag;
 	int offset;
 } Line; // For memory
 
 typedef struct {
-	unsigned char V;
+	unsigned char value;
+	int offset;
 	int tag;
+	int lru;
 	int dirty;
+	int valid;
 } Block; // For cache
 
 Line mem[128]; // 4096B/32B
@@ -31,9 +34,13 @@ void init()
 		{
 			// Seguro que hay errores
 			Block temp;
-			temp.V = 0;
+			temp.value = 0;
+			temp.offset = 0;
 			temp.tag = j; // ???
-			temp.dirty = 1;
+			temp.lru = j; // To make a first decision
+			temp.dirty = 0;
+			temp.valid = 0;
+			
 			cache[i][j] = temp;
 		}
 	}
@@ -41,10 +48,11 @@ void init()
 	for( int i = 0; i < 128; ++i )
 	{
 		Line temp;
-		temp.V = i;
+		temp.value= i;
 		temp.index = 32*i;
 		temp.tag = i%16; // Distribute between the 16 blocks of each way
-		temp.offset = 0; // ???
+		temp.offset = i;
+
 		mem[i] = temp;
 	}
 }
@@ -52,8 +60,45 @@ void init()
 
 unsigned char read_byte( int address )
 {
+	int loc;
+	loc = address/32;
 	
-	return mem[address/32].V;
+	int pos;
+	pos = mem[loc].tag;
+	int way;
+	/* way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0 */
+	if ( cache[pos][0].offset == mem[loc].offset ) way = 0; 
+	else if ( cache[pos][1].offset == mem[loc].offset ) way = 1;
+
+	// Used now => is the LRU
+	cache[pos][way].lru = 0;
+	cache[pos][1-way].lru = 1;
+
+	if ( ! cache[pos][way].valid )
+	{
+		puts("invalid");
+		cache[pos][way].value = mem[loc].value;
+		cache[pos][way].valid = 1;
+		cache[pos][way].dirty = 0;
+				
+		return -1;
+	}
+
+	if ( ! cache[pos][way].dirty )
+	{
+		puts("valid and clean");
+		return cache[pos][way].value;
+	}
+
+	puts("dirty");
+	
+	mem[ cache[pos][way].offset * 32 ].value = cache[pos][way].value;
+	cache[pos][way].value = mem[loc].value;
+	cache[pos][way].offset = mem[loc].offset;
+	
+	cache[pos][way].valid = 1;
+	cache[pos][way].dirty = 0;
+	return -1;
 }
 
 
@@ -86,7 +131,9 @@ int main( int argc, char *argv[] )
 	}
 	
 	init();
-	printf("%u\n", read_byte(32));
+	printf("%u\n", read_byte(96));
+	printf("%u\n", read_byte(96));
+	
 	printf("%u\n", read_byte(3072));
 
 	
