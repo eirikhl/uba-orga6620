@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 unsigned int instructions;
 unsigned int misses;
-unsigned int miss_rate;
+float miss_rate;
 
 typedef struct {
 	unsigned char value;
@@ -62,8 +63,8 @@ void init()
 	}
 }
 
-
-unsigned char read_byte( int address )
+//esto no puede retornar un -1!!!
+int read_byte( int address )
 {
 	int loc;
 	loc = address/32;
@@ -88,13 +89,13 @@ unsigned char read_byte( int address )
 
 	if ( ( cache[pos][way].valid ) && ( ! cache[pos][way].dirty ) )
 	{
-		puts("valid and clean");
+		//puts("valid and clean");
 		return cache[pos][way].value;
 	}
 
 	if ( ! cache[pos][way].valid )
 	{
-		puts("invalid");
+		//puts("invalid");
 		cache[pos][way].value = mem[loc].value;
 		cache[pos][way].offset = mem[loc].offset;
 		
@@ -105,7 +106,7 @@ unsigned char read_byte( int address )
 	}
 
 	// Writeback
-	puts("dirty");
+	//puts("dirty");
 	
 	mem[ cache[pos][way].offset * 32 ].value = cache[pos][way].value;
 	cache[pos][way].value = mem[loc].value;
@@ -127,8 +128,8 @@ unsigned int write_byte( int address, unsigned char value )
 	pos = mem[loc].tag;
 	int way;
 	/* way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0 */
-	if ( cache[pos][0].offset == mem[loc].offset ) way = 0; 
-	else if ( cache[pos][1].offset == mem[loc].offset ) way = 1;
+	if ( (cache[pos][0].valid == 1) && (cache[pos][0].offset == mem[loc].offset) ) way = 0;
+	else if ( (cache[pos][1].valid == 1) && (cache[pos][1].offset == mem[loc].offset) ) way = 1;
 	else return -1;
 
 	// Used now => is the LRU
@@ -138,17 +139,38 @@ unsigned int write_byte( int address, unsigned char value )
 	cache[pos][way].value = value;
 	cache[pos][way].valid = 1;
 
-	puts("written");
+	//puts("written");
     return 0;
 }
 
 
 unsigned int get_miss_rate()
 {
-	return misses/instructions;
+	return ((float)misses/(float)instructions)*100;
 }
 
-
+void get_instruction(char *line,char *instruction,int *addr,int *val){
+	int x = 0;
+	char *token = NULL;
+	token = strtok(line, " ");
+	if(strcmp(token, "W") == 0){
+		instruction[0] = 'W';
+		instruction[1] = '\0';
+		token = strtok(NULL, ", ");
+		*addr = atoi(token);
+		token = strtok(NULL, " \n");
+		*val = atoi(token);
+	}else if(strcmp(token, "R") == 0){
+		instruction[0] = 'R';
+		instruction[1] = '\0';
+		token = strtok(NULL, " \n");
+		*addr = atoi(token);
+	}else{
+		instruction[0] = 'M';
+		instruction[1] = 'R';
+		instruction[2] = '\0';
+	}
+}
 int main( int argc, char *argv[] )
 {
 	FILE *fp;
@@ -162,14 +184,14 @@ int main( int argc, char *argv[] )
 	fp = fopen( argv[1], "r" );
 	
 	init();
-	printf("%d\n", write_byte(96, 11));
+	/*printf("%d\n", write_byte(96, 11));
 	printf("%u\n", read_byte(96));
 	
 	printf("%d\n", write_byte(96, 69));
 	printf("%u\n", read_byte(96));
 	
 	printf("%u\n", read_byte(3072));
-
+	*/
 	char * line = NULL;
     size_t len = 0;
     ssize_t read;
@@ -184,12 +206,39 @@ int main( int argc, char *argv[] )
 	char cmd;
 	int addr;
 	int val;
+	char tipe_instruction[3] = "--";
 	char temp[12];
 	char *ptr;
-    while ((read = getline(&line, &len, fp)) != -1) {
+    /*while ((read = getline(&line, &len, fp)) != -1) {
         printf( "%s", line );
-    }
+    }*/
+	getline(&line, &len, fp);
+    while (!feof(fp)) {
+    	get_instruction(line,tipe_instruction,&addr,&val);
 
+    	if(strcmp(tipe_instruction, "W") == 0){
+    		instructions++;
+    		if(write_byte(addr,(unsigned char)val) == -1){
+    			misses++;
+    			printf("miss  \n");
+    		}
+    		else{
+    			printf("0\n");
+    		}
+    	}else if(strcmp(tipe_instruction, "R") == 0){
+    		instructions++;
+    		int valor = read_byte( addr );
+    		if(valor == -1){
+    			misses++;
+    			printf("miss  \n");
+    		}else{
+    			printf("%i\n",valor);
+    		}
+    	}else if(strcmp(tipe_instruction, "MR") == 0){
+    		printf("%i\n", get_miss_rate());
+    	}
+    	getline(&line, &len, fp);
+    }
     fclose( fp );
 
 	if (line)
