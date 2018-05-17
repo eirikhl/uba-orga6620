@@ -9,8 +9,8 @@ float miss_rate;
 
 typedef struct {
 	unsigned char value;
-	int index; // Address
-	int tag;
+	int index; // For finding cache block
+	int address;
 	int offset;
 } Line; // For memory
 
@@ -23,9 +23,11 @@ typedef struct {
 	int valid;
 } Block; // For cache
 
+
+// Change it to use the entire range of numbers
+// Then, change read and write to operate on groups of 32 byte
 Line mem[128]; // 4096B/32B
 Block cache[16][2]; // 2 ways => 512B*2 => 16 Blocks of 32B
-// Necesita un malloc o calloc???
 
 
 void init()
@@ -41,9 +43,11 @@ void init()
 			// Seguro que hay errores
 			Block temp;
 			temp.value = 0;
-			temp.offset = 0;
-			temp.tag = j; // ???
+			temp.offset = 0; // where in cache block to place data
+			
+			temp.tag = 0; //compare with memory index
 			temp.lru = j; // To make a first decision
+			
 			temp.dirty = 0;
 			temp.valid = 0;
 			
@@ -54,66 +58,64 @@ void init()
 	for ( int i = 0; i < 128; ++i )
 	{
 		Line temp;
-		temp.value= i;
-		temp.index = 32*i;
-		temp.tag = i%16; // Distribute between the 16 blocks of each way
+		temp.value = 0;
+		temp.address = 32*i;
 		temp.offset = i;
+		temp.index = i%16; // Distribute between the 16 blocks of each way
 
 		mem[i] = temp;
 	}
 }
 
-//esto no puede retornar un -1!!!
 int read_byte( int address )
 {
 	int loc;
-	loc = address/32;
-	
-	int pos;
-	pos = mem[loc].tag;
-	int way;
+	loc = address/32; // translate for mem array
 
-	int present = 1;
-	
-	if ( cache[pos][0].offset == mem[loc].offset ) way = 0; 
-	else if ( cache[pos][1].offset == mem[loc].offset ) way = 1;
-	else
+	int offset;
+	offset = address%32;
+
+	int pos;
+	pos = mem[loc].index; // which cache block should it use
+
+	int way;
+	int present;
+	present = 1;
+	if ( loc == cache[pos][0].tag ) way = 0;
+	else if ( loc == cache[pos][1].tag ) way = 1;
+	else 
 	{
 		present = 0;
-		way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0
+		way = ( cache[pos][0].lru ) ? 0 : 1; // If way 0 is LRU, use 0
 	}
 	
-	// Used now => is the LRU
+	// Used now => the other is the LRU
 	cache[pos][way].lru = 0;
 	cache[pos][1-way].lru = 1;
 
-	if ( ( cache[pos][way].valid ) && ( ! cache[pos][way].dirty ) )
-	{
-		//puts("valid and clean");
+	if ( present && (cache[pos][way].valid) && (! cache[pos][way].dirty) )
 		return cache[pos][way].value;
-	}
-
+	
 	if ( ! cache[pos][way].valid )
 	{
-		//puts("invalid");
+		cache[pos][way].tag = loc;
+		cache[pos][way].offset = offset;
 		cache[pos][way].value = mem[loc].value;
-		cache[pos][way].offset = mem[loc].offset;
-		
 		cache[pos][way].valid = 1;
 		cache[pos][way].dirty = 0;
-				
-		return -1;
 	}
+	else if ( cache[pos][way].dirty )
+	{
+		// Write back
+		mem[cache[pos][way].tag].value = cache[pos][way].value;
 
-	// Writeback
-	//puts("dirty");
+		cache[pos][way].tag = loc;
+		cache[pos][way].offset = offset;
+		cache[pos][way].value = mem[loc].value;
+		cache[pos][way].valid = 1;
+		cache[pos][way].dirty = 0;
+	}
 	
-	mem[ cache[pos][way].offset * 32 ].value = cache[pos][way].value;
-	cache[pos][way].value = mem[loc].value;
-	cache[pos][way].offset = mem[loc].offset;
-	
-	cache[pos][way].valid = 1;
-	cache[pos][way].dirty = 0;
 	return -1;
 }
 
@@ -121,26 +123,34 @@ int read_byte( int address )
 unsigned int write_byte( int address, unsigned char value )
 {
 	int loc;
-	loc = address/32;
+	loc = address/32; // translate for mem array
 	mem[loc].value = value; // The value should be written to mem no matter what
-	
+
+	int offset;
+	offset = address%32;
+
 	int pos;
-	pos = mem[loc].tag;
+	pos = mem[loc].index; // which cache block should it use
+
 	int way;
-	/* way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0 */
-	if ( (cache[pos][0].valid == 1) && (cache[pos][0].offset == mem[loc].offset) ) way = 0;
-	else if ( (cache[pos][1].valid == 1) && (cache[pos][1].offset == mem[loc].offset) ) way = 1;
-	else return -1;
-
-	// Used now => is the LRU
-	cache[pos][way].lru = 0;
-	cache[pos][1-way].lru = 1;
+	if ( loc == cache[pos][0].tag ) way = 0;
+	else if ( loc == cache[pos][1].tag ) way = 1;
+	else
+	{
+		return -1;
+	}
+	if ( ! cache[pos][way].valid )
+		return -1;
 	
-	cache[pos][way].value = value;
+	cache[pos][way].tag = loc;
+	cache[pos][way].value = mem[loc].value;
 	cache[pos][way].valid = 1;
+	// If it's a different position in memory that's loaded, that makes it dirty for the old
+	cache[pos][way].dirty = ( offset == cache[pos][way].offset ) ? 0 : 1;
 
-	//puts("written");
-    return 0;
+	cache[pos][way].offset = offset;
+
+	return 0;
 }
 
 
