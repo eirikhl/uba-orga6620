@@ -24,8 +24,6 @@ typedef struct {
 } Block; // For cache
 
 
-// Change it to use the entire range of numbers
-// Then, change read and write to operate on groups of 32 byte
 Line mem[4096];
 Block cache[512][2];
 
@@ -57,7 +55,7 @@ void init()
 	for ( int i = 0; i < 4096; ++i )
 	{
 		Line temp;
-		temp.value = 0;
+		temp.value = -1;
 		temp.address = i;
 		temp.offset = i;
 		temp.index = i%16; // Distribute between the 16 blocks of each way
@@ -65,6 +63,7 @@ void init()
 		mem[i] = temp;
 	}
 }
+
 
 int read_byte( int address )
 {
@@ -94,13 +93,16 @@ int read_byte( int address )
 
 	if ( present && (cache[pos][way].valid) )
 		return cache[pos+offset][way].value;
-	
-	cache[pos][way].tag = loc;
-	cache[pos][way].offset = offset;
-	cache[pos+offset][way].value = mem[loc+offset].value;
-	cache[pos][way].valid = 1;
-	cache[pos][way].dirty = 0;
 
+	for ( int i = 0; i < 32; ++i )
+	{
+		cache[pos+i][way].tag = loc;
+		cache[pos+i][way].offset = offset;
+		cache[pos+offset+i][way].value = mem[loc+i].value;
+		cache[pos+i][way].valid = 1;
+		cache[pos+i][way].dirty = 0;
+	}
+	
 	return -1;
 }
 
