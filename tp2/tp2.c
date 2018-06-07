@@ -9,8 +9,8 @@ float miss_rate;
 
 typedef struct {
 	unsigned char value;
-	int index; // Address
-	int tag;
+	int index; // For finding cache block
+	int address;
 	int offset;
 } Line; // For memory
 
@@ -23,9 +23,9 @@ typedef struct {
 	int valid;
 } Block; // For cache
 
-Line mem[128]; // 4096B/32B
-Block cache[16][2]; // 2 ways => 512B*2 => 16 Blocks of 32B
-// Necesita un malloc o calloc???
+
+Line mem[4096];
+Block cache[512][2];
 
 
 void init()
@@ -34,16 +34,17 @@ void init()
 	misses = 0;
 	miss_rate = 0;
 	
-	for ( int i = 0; i < 16; ++i )
+	for ( int i = 0; i < 512; ++i )
 	{
 		for( int j = 0; j < 2; ++j )
 		{
-			// Seguro que hay errores
 			Block temp;
-			temp.value = 0;
-			temp.offset = 0;
-			temp.tag = j; // ???
+			temp.value = -1;
+			temp.offset = 0; // Where in cache block to place data
+			
+			temp.tag = 0; // To compare with memory index
 			temp.lru = j; // To make a first decision
+			
 			temp.dirty = 0;
 			temp.valid = 0;
 			
@@ -51,96 +52,90 @@ void init()
 		}
 	}
 
-	for ( int i = 0; i < 128; ++i )
+	for ( int i = 0; i < 4096; ++i )
 	{
 		Line temp;
-		temp.value= i;
-		temp.index = 32*i;
-		temp.tag = i%16; // Distribute between the 16 blocks of each way
+		temp.value = -1;
+		temp.address = i;
 		temp.offset = i;
+		temp.index = i%16; // Distribute between the 16 blocks of each way
 
 		mem[i] = temp;
 	}
 }
 
-//esto no puede retornar un -1!!!
+
 int read_byte( int address )
 {
-	int loc;
-	loc = address/32;
-	
-	int pos;
-	pos = mem[loc].tag;
-	int way;
+	int offset;
+	offset = address%32;
 
-	int present = 1;
-	
-	if ( cache[pos][0].offset == mem[loc].offset ) way = 0; 
-	else if ( cache[pos][1].offset == mem[loc].offset ) way = 1;
-	else
+	int loc;
+	loc = address - offset; // Translate for mem array
+
+	int pos;
+	pos = (mem[loc].index)*32; // Start position for which cache block should it use
+
+	int way;
+	int present;
+	present = 1;
+	if ( loc == cache[pos][0].tag ) way = 0;
+	else if ( loc == cache[pos][1].tag ) way = 1;
+	else 
 	{
 		present = 0;
-		way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0
+		way = ( cache[pos][0].lru ) ? 0 : 1; // If way 0 is LRU, use 0
 	}
 	
-	// Used now => is the LRU
+	// Used now => the other is the LRU
 	cache[pos][way].lru = 0;
 	cache[pos][1-way].lru = 1;
 
-	if ( ( cache[pos][way].valid ) && ( ! cache[pos][way].dirty ) )
-	{
-		//puts("valid and clean");
-		return cache[pos][way].value;
-	}
+	if ( present && (cache[pos][way].valid) )
+		return cache[pos+offset][way].value;
 
-	if ( ! cache[pos][way].valid )
+	for ( int i = 0; i < 32; ++i )
 	{
-		//puts("invalid");
-		cache[pos][way].value = mem[loc].value;
-		cache[pos][way].offset = mem[loc].offset;
-		
-		cache[pos][way].valid = 1;
-		cache[pos][way].dirty = 0;
-				
-		return -1;
+		cache[pos+i][way].tag = loc;
+		cache[pos+i][way].offset = offset;
+		cache[pos+offset+i][way].value = mem[loc+i].value;
+		cache[pos+i][way].valid = 1;
+		cache[pos+i][way].dirty = 0;
 	}
-
-	// Writeback
-	//puts("dirty");
 	
-	mem[ cache[pos][way].offset * 32 ].value = cache[pos][way].value;
-	cache[pos][way].value = mem[loc].value;
-	cache[pos][way].offset = mem[loc].offset;
-	
-	cache[pos][way].valid = 1;
-	cache[pos][way].dirty = 0;
 	return -1;
 }
 
 
 unsigned int write_byte( int address, unsigned char value )
 {
+	int offset;
+	offset = address%32;
+
 	int loc;
-	loc = address/32;
-	mem[loc].value = value; // The value should be written to mem no matter what
-	
+	loc = address - offset; // Translate for mem array
+	mem[address].value = value; // The value should be written to mem no matter what
+
 	int pos;
-	pos = mem[loc].tag;
+	pos = (mem[loc].index)*32; // Which cache block should it use
+
 	int way;
-	/* way = ( cache[pos][0].lru ) ? 1 : 0; // If way 0 is LRU, use 0 */
-	if ( (cache[pos][0].valid == 1) && (cache[pos][0].offset == mem[loc].offset) ) way = 0;
-	else if ( (cache[pos][1].valid == 1) && (cache[pos][1].offset == mem[loc].offset) ) way = 1;
-	else return -1;
+	if ( loc == cache[pos][0].tag ) way = 0;
+	else if ( loc == cache[pos][1].tag ) way = 1;
+	else
+		return -1;
 
-	// Used now => is the LRU
-	cache[pos][way].lru = 0;
-	cache[pos][1-way].lru = 1;
+	if ( ! cache[pos][way].valid )
+		return -1;
 	
-	cache[pos][way].value = value;
+	cache[pos][way].tag = loc;
+	cache[pos+offset][way].value = value;
 	cache[pos][way].valid = 1;
+	// If it's a different position in memory that's loaded, that makes it dirty for the old
+	cache[pos][way].dirty = ( offset == cache[pos][way].offset ) ? 0 : 1;
+	cache[pos][way].offset = offset;
 
-	//puts("written");
-    return 0;
+	return 0;
 }
 
 
@@ -148,6 +143,7 @@ unsigned int get_miss_rate()
 {
 	return ((float)misses/(float)instructions)*100;
 }
+
 
 void get_instruction(char *line,char *instruction,int *addr,int *val){
 	int x = 0;
@@ -171,6 +167,8 @@ void get_instruction(char *line,char *instruction,int *addr,int *val){
 		instruction[2] = '\0';
 	}
 }
+
+
 int main( int argc, char *argv[] )
 {
 	FILE *fp;
@@ -184,19 +182,11 @@ int main( int argc, char *argv[] )
 	fp = fopen( argv[1], "r" );
 	
 	init();
-	/*printf("%d\n", write_byte(96, 11));
-	printf("%u\n", read_byte(96));
 	
-	printf("%d\n", write_byte(96, 69));
-	printf("%u\n", read_byte(96));
-	
-	printf("%u\n", read_byte(3072));
-	*/
 	char * line = NULL;
     size_t len = 0;
     ssize_t read;
 
-    /* fp = fopen("/etc/motd", "r"); */
     if ( fp == NULL )
 	{
 		printf( "The file does not exist\n" );
@@ -207,11 +197,7 @@ int main( int argc, char *argv[] )
 	int addr;
 	int val;
 	char tipe_instruction[3] = "--";
-	char temp[12];
-	char *ptr;
-    /*while ((read = getline(&line, &len, fp)) != -1) {
-        printf( "%s", line );
-    }*/
+	
 	getline(&line, &len, fp);
     while (!feof(fp)) {
     	get_instruction(line,tipe_instruction,&addr,&val);
@@ -239,6 +225,7 @@ int main( int argc, char *argv[] )
     	}
     	getline(&line, &len, fp);
     }
+
     fclose( fp );
 
 	if (line)
