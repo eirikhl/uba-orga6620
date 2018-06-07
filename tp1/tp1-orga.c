@@ -35,7 +35,7 @@ void guardarMatriz(long long *matrix, int cantColumnas, int cantFilas, FILE *fp)
 	if ( NULL != fp ) fputc( '\n', fp);
 	else puts( "\n" );
 }
-int trasponer(unsigned int filas, unsigned int columnas, long long *entrada, long long *salida){
+int transponer(unsigned int filas, unsigned int columnas, long long *entrada, long long *salida){
 	int i = 0;
 	int contadorMatrixSalida = 0;
 	for(i = 0; i < columnas; i++){
@@ -45,7 +45,7 @@ int trasponer(unsigned int filas, unsigned int columnas, long long *entrada, lon
 			contadorMatrixSalida++;
 		}
 	}
-	return 1;
+	return SALIDA_EXITOSA;
 }
 
 int llenarFila(char *fila,long long *vectorFila,int *cantColumnas,int contadorFilas){
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
     }
     long long *matrixSalida = malloc((cantFilas*cantColumnas)*sizeof(long long));
 
-    trasponer(cantFilas, cantColumnas, matrix, matrixSalida);
+    transponer(cantFilas, cantColumnas, matrix, matrixSalida);
 	
 	if ( NULL == outputFile ) outputFile = stdout;
 	guardarMatriz(matrixSalida, cantFilas, cantColumnas, outputFile);
