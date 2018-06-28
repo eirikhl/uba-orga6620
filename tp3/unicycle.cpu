@@ -65,19 +65,22 @@
 
 	    {"from": "PCAdder", "out": "PC+4", "to": "ForkPC4", "in": "In"},
 	    {"from": "ForkPC4", "out": "Out1", "to": "DistPC", "in": "In"},
-	    {"from": "ForkPC4", "out": "Out2", "to": "MuxJALR", "in": "1", "points": [{"x": 177, "y": 392}]},
 
 	    {"from": "Control", "out": "Branch", "to": "AndBranch", "in": "Branch", "start": {"x": 280, "y": 130}, "points": [{"x": 420, "y": 130}, {"x": 420, "y": 110}]},
-	    {"from": "MuxJump", "out": "Out", "to": "MuxJR", "in": "0", "points": [{"x": 600, "y": 35}, {"x": 600, "y": 13}], "end": {"x": 345, "y": 13}},
 	    {"from": "MuxJR", "out": "Out", "to": "PC", "in": "NewPC", "start": {"x": 340, "y": 8}, "points": [{"x": 25, "y": 8}, {"x": 25, "y": 265}]},
-	    {"from": "ALUControl", "out": "JumpReg", "to": "MuxJR", "in": "JumpReg", "start": {"x": 395, "y": 330}, "points": [{"x": 395, "y": 30}], "end": {"x": 345, "y": 30}},
+
+	    {"from": "ALUControl", "out": "JumpReg", "to": "MuxJR", "in": "JumpReg", "start": {"x": 395, "y": 330}, "points": [{"x": 395, "y": 47}, {"x": 337,"y": 47}], "end": {"x": 337, "y": 36}},
+	    {"from": "MuxJump", "out": "Out", "to": "MuxJR", "in": "0", "points": [{"x": 600, "y": 35}, {"x": 600, "y": 13}], "end": {"x": 345, "y": 13}},
+	    {"from": "ForkRD", "out": "Out2", "to": "MuxJR", "in": "1", "points": [{"x": 348, "y": 25}], "end": {"x": 345, "y": 25}},
 
 	    {"from": "RegBank", "out": "ReadData1", "to": "ForkRD", "in": "In"},
 	    {"from": "ForkRD", "out": "Out1", "to": "ALU", "in": "In1", "end": {"x": 400, "y": 248}},
-	    {"from": "ForkRD", "out": "Out2", "to": "MuxJR", "in": "1", "points": [{"x": 348, "y": 90}, {"x": 335, "y": 90}], "end": {"x": 335, "y": 37}},
 
-	    {"from": "MuxMem", "out": "Out", "to": "MuxJALR", "in": "0", "end": {"x": 245, "y": 400}, "points": [{"x": 600, "y": 287}, {"x": 600, "y": 400}]},
-	    {"from": "ALUControl", "out": "JumpLink", "to": "MuxJALR", "in": "JumpLink", "start": {"x": 395, "y": 370}, "points": [{"x": 395, "y": 385}], "end": {"x": 245, "y": 385}},
+	    {"from": "MuxMem", "out": "Out", "to": "MuxJALR", "in": "0", "end": {"x": 245, "y": 385}, "points": [{"x": 600, "y": 287}, {"x": 600, "y": 385}]},
+	    {"from": "ForkPC4", "out": "Out2", "to": "MuxJALR", "in": "1", "points": [{"x": 177, "y": 415}, {"x": 255, "y": 415}, {"x": 255, "y": 398}], "end": {"x": 245, "y": 398}},
+
+	    {"from": "ALUControl", "out": "JumpLink", "to": "MuxJALR", "in": "JumpLink", "start": {"x": 395, "y": 370}, "points": [{"x": 395, "y": 410}, {"x": 238, "y": 410}], "end": {"x": 238, "y": 405}},
+
 	    {"from": "MuxJALR", "out": "Out", "to": "RegBank", "in": "WriteData", "start": {"x": 237, "y": 370}, "points": [{"x": 237, "y": 300}], "end": {"x": 250, "y": 300}},
 	    
 	    
